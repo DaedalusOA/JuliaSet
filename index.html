@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Julia Sets</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="styles.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Oxanium:wght@200..800&family=Playwrite+GB+S:ital,wght@0,100..400;1,100..400&family=Quicksand:wght@300..700&family=Sour+Gummy:ital,wght@0,100..900;1,100..900&family=Space+Grotesk:wght@300..700&display=swap" rel="stylesheet">
+  <link rel="icon" href="image.png" type="image/png">
+
+</head>
+<body>
+
+   <div class="parameters">
+
+    <div class="space">
+      <h2 class="settings">parameters</h2>
+    </div>
+    <div class="slidecontainer">
+      <h1>x val</h1>
+      <input type="range" min="-1" max="1" value="-0.9" class="slider" id="xRange" step="0.001">
+      <h1 class="value" id="xVal">?</h1>
+    </div>
+    <div class="slidecontainer">
+      <h1>y val</h1>
+      <input type="range" min="-1" max="1" value="0.254" class="slider" id="yRange" step="0.001">
+      <h1 class="value" id="yVal">?</h1>
+    </div>
+    <div class="slidecontainer">
+      <h1>iterations</h1>
+      <input type="range" min="1" max="1000" value="100" class="slider" id="IterationsRange" step="1">
+      <h1 class="value" id="iterationsVal">?</h1>
+    </div>
+    <div class="slidecontainer">
+      <h1>anim_speed</h1>
+      <input type="range" min="0" max="0.5" value="0.01" class="slider" id="AnSpeedRange" step="0.0001">
+      <h1 class="value" id="anmSpedVal">?</h1>
+    </div>
+    <div class="slidecontainer">
+      <h1>anim_range</h1>
+      <input type="range" min="0" max="1" value="0.05" class="slider" id="AnRangeRange" step="0.001">
+      <h1 class="value" id="anmRangeVal">?</h1>
+    </div>
+    <div class = "bottom">
+      <button class="text" id="reset">reset</button> 
+    </div>
+    <div class="code_cont">
+      <a class="code">source code</a>
+    </div>
+   
+   </div>
+   <a class ="author"href="https://diegoochoaa.github.io/portafolio/">By Diego Ochoa</a>
+
+    <label class="custom-checkbox">
+      <input type="checkbox" class="opener">
+      <h1 class="checker">+</h1>
+    </label>
+
+
+    
+    
+  
+
+    <script id="vertexShader" type="x-shader/x-vertex">
+        varying vec2 vUvs;
+      
+      void main() {
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+          vUvs = uv;
+      }
+      </script>
+
+      
+      <script id="fragmentShaderScreen" type="x-shader/x-fragment">
+      
+        precision mediump float;
+        //Our input texture
+        uniform sampler2D uTexture; 
+        uniform vec2 uResolution;
+        varying vec2 vUvs;
+
+   
+      
+        void main() {
+          //special method to sample from texture
+          vec4 initTexture = texture2D(uTexture, vUvs);
+         
+         
+         
+          vec3 colour = initTexture.rgb;
+          
+          float final = (colour.r*0.1)/(1.-colour.r);
+          vec3 col =  mix(vec3(.0), vec3(.1), colour.r*10.);
+      
+          gl_FragColor = vec4(col, 1.0);
+      }
+      </script>
+      
+      <script id="fragmentShaderBuffer" type="x-shader/x-fragment">
+      
+        precision mediump float;
+        //Our input texture
+        uniform sampler2D uTexture; 
+        uniform vec2 uResolution;
+        uniform float x;
+        uniform float y;
+        uniform float mSize;
+        uniform int Iterations;
+        uniform vec2 u_center;
+        //uniform vec2 u_mousePosition; // New uniform for mouse position
+        uniform float u_zoom;
+        varying vec2 vUvs;
+
+        float julia(vec2 coord, vec2 c, int maxIter) {
+          vec2 z = coord; // Start with the pixel's complex coordinate
+          int iter = 0;
+      
+          for (int i = 0; i < 1000; i++) { // High constant to satisfy GLSL dynamic loop requirements
+              if (i >= maxIter) break;
+      
+              // Calculate z^2 + c
+              float zx = z.x * z.x - z.y * z.y + c.x;
+              float zy = 2.0 * z.x * z.y + c.y;
+              z = vec2(zx, zy);
+      
+              // Escape condition
+              if (length(z) > 2.0) break;
+      
+              iter = i;
+          }
+      
+          return float(iter) / float(maxIter); // Return normalized iteration count
+      }
+
+        
+
+        
+        
+      
+      void main() {
+        vec2 uv = gl_FragCoord.xy / uResolution.xy; // Normalize pixel coordinates
+
+
+        vec2 juliapos = vec2(x, y) / uResolution; // Normalize juliapos position
+        vec2 resolutionAspect = uResolution / min(uResolution.x, uResolution.y); // Aspect ratio scaling factor
+        vec2 adjustedJuliapos = (juliapos ) * resolutionAspect ;
+
+        
+
+
+        // Normalize coordinates and apply zoom and offset
+        vec2 coord = (gl_FragCoord.xy / uResolution - 0.5) * 2.0 * u_zoom;
+        coord = coord + adjustedJuliapos;
+   
+        
+        
+    
+        // Compute Julia set value
+        float color = julia(coord,u_center, Iterations);
+        float r = 1.-abs(color*300.*color);
+        float g = 1.-abs(color*300.*color);
+        float b =  1.-abs(color*300.*color);
+        
+      
+    
+        // Assign color based on Julia set value
+        gl_FragColor = vec4(r,g,b, 1.0); // Grayscale coloring
+    }
+      </script>
+    
+  <script src="index.js" type="module">
+  </script>
+</body>
+</html>
