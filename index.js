@@ -20,6 +20,9 @@ reset.addEventListener('click', function() {
    IterationsRange.value = 100;
    AnSpeedRange.value = 0.01;
    AnRangeRange.value = 0.05;
+   juliaX = 0;
+   juliaY = 0;
+   deltaY = 0;
  
 
   
